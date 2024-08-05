@@ -1,0 +1,30 @@
+{% extends 'admin/base_site.html' %}
+{% block content %}
+<h1>Manage Duplicate Notifications</h1>
+<form method="post">
+  {% csrf_token %}
+  <table>
+    <thead>
+      <tr>
+        <th>User ID</th>
+        <th>Notification Type</th>
+        <th>Created</th>
+        <th>Select</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for group in detailed_duplicates %}
+        {% for subscription in group %}
+        <tr>
+          <td>{{ subscription.user_id }}</td>
+          <td>{{ subscription.notification_type }}</td>
+          <td>{{ subscription.created }}</td>
+          <td><input type="checkbox" name="duplicates" value="{{ subscription.id }}"></td>
+        </tr>
+        {% endfor %}
+      {% endfor %}
+    </tbody>
+  </table>
+  <button type="submit">Delete Selected</button>
+</form>
+{% endblock %}

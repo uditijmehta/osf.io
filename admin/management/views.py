@@ -13,7 +13,7 @@ from osf.management.commands.fetch_cedar_metadata_templates import ingest_cedar_
 from scripts.find_spammy_content import manage_spammy_content
 from django.urls import reverse
 from django.shortcuts import redirect
-from osf.models import Preprint, Node, Registration
+from osf.models import Preprint, Node, Registration, NotificationSubscription
 
 
 class ManagementCommands(TemplateView):
@@ -141,3 +141,28 @@ class IngestCedarMetadataTemplates(ManagementCommandPermissionView):
         ingest_cedar_metadata_templates()
         messages.success(request, 'Cedar templates have been successfully imported from Cedar Workbench.')
         return redirect(reverse('management:commands'))
+
+class ManageDuplicateNotificationsView(ManagementCommandPermissionView):
+
+    def get(self, request, *args, **kwargs):
+        duplicates = NotificationSubscription.objects.values(
+            'user_id', 'notification_type'
+        ).annotate(count=Count('id')).filter(count__gt=1)
+
+        detailed_duplicates = []
+        for dup in duplicates:
+            subscriptions = NotificationSubscription.objects.filter(
+                user_id=dup['user_id'],
+                notification_type=dup['notification_type']
+            )
+            detailed_duplicates.append(subscriptions)
+
+        return render(request, 'admin/manage_duplicates.html', {
+            'detailed_duplicates': detailed_duplicates
+        })
+
+    def post(self, request, *args, **kwargs):
+        selected_duplicates = request.POST.getlist('duplicates')
+        NotificationSubscription.objects.filter(id__in=selected_duplicates).delete()
+        messages.success(request, 'Duplicate notifications removed successfully.')
+        return redirect(reverse('admin:manage_duplicates'))
